@@ -4,13 +4,16 @@
 import sys
 import datetime
 import itertools
+from collections import namedtuple
+
+
+DNS_packet = namedtuple('DNS_packet_type',['t','reqid','is_req'])  
 
 
 # yield makes this a generator function. Contrast this with a
 # generator expression like e.g.
 # filtered_gen = (item for item in my_list if item > 3)
 def parse_gen(f):
-    # ret = []
     for line in f:
         parts = line.strip().split(" ")
         if len(parts) > 5:
@@ -21,13 +24,7 @@ def parse_gen(f):
             if is_req:
                 reqid = reqid[:-1]
 
-            yield (t, reqid, is_req) # maybe return named tuple
-                                     # instead of [0] [1] [2]
-                                     # indexes
-            # ret.append((t, reqid, is_req))
-    # return ret
-    # ^^ can do 'return ret' instead also - and then this would not be a
-    # generator.
+            yield DNS_packet(t, reqid, is_req)
 
 
 def t2f(t):
@@ -39,10 +36,10 @@ def process(packets_gen):
     # secondary sort field when the first member of a tuple is the same (and
     # we want is_req True to be the first before the other packets with the
     # same ID - i.e. the responses).
-    packets = sorted(packets_gen, key=lambda x: (x[1], not x[2], x[0]))
+    packets = sorted(packets_gen, key=lambda x: (x.reqid, not x.is_req, x.t))
 
     # Get an iterator to each ID group in the sorted packets.
-    groups = itertools.groupby(packets, lambda x: x[1])
+    groups = itertools.groupby(packets, lambda x: x.reqid)
 
     ave_response_time = []
     print(f"{'id':^7}{'t0':^14}{'t1_ave':^14}{'t1_ave-t0':^10}")
@@ -50,10 +47,10 @@ def process(packets_gen):
     for id, g in groups:
         items = list(g)
 
-        assert items[0][2]  # first item must be request
-        t0 = t2f(items[0][0])
+        assert items[0].is_req  # first item must be request
+        t0 = t2f(items[0].t)
 
-        response_times = [r[0] for r in items if not r[2]]
+        response_times = [r.t for r in items if not r.is_req]
 
         if len(response_times) > 0: # make sure there was a response in sample
             t1 = [t2f(t) for t in response_times]
