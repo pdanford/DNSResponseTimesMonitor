@@ -11,4 +11,5 @@ Test with:
 
     cat tcpdump.out | ./DNS_response_time_stats.py
 
-Note: by Tom D. Aug 2020
+Note: 1st version by Tom D. Aug 2020
+      revised by Peter D. Oct 2020
