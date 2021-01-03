@@ -67,5 +67,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # Suppress python error when <ctrl><c> is used to exit
+        pass
+
+    print("-- exit -- ")
+
+    sys.exit(0)
 
