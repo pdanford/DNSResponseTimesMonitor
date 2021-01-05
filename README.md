@@ -36,3 +36,5 @@ If the terminal window height is not enough to display scroll regions for all DN
 - revised by pdanford - Oct 2020
 - terminal window scroll regions added by pdanford - Jan 2021
 
+---
+:scroll: [MIT License](README.license)
