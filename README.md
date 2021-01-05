@@ -1,19 +1,38 @@
-DNS response statistics parser
-------------------------------
+DNS Response Times Monitor
+--------------------------------------------------------------------------------
+This script parses output from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show DNS response times in ms for each DNS request ID separated by DNS server and IP version.
 
-This script parses output from a block of tcpdump output lines (the -c tcpdump argument) configured to capture DNS requests and responses to calculate ave DNS response times for each DNS request ID as well as an overall average of the responses.
+##### Example use (continuous stream):
+```
+ssh r7800 'tcpdump -K -U -i eth0.2 udp port 53 2>/dev/null' | ./DNS_times_parser.py
+```
 
-Note each request ID may be used on multiple DNS servers at the same time. Hence the average column t1_ave-t0.
+In this example, the interface used in tcpdump is the WAN interface of a Netgear router so dnsmasq cache lookups and any adblock DNS black-holing is bypassed.
 
-Example use:
+##### Test with:
+```
+cat assets/tcpdump_test.out | ./DNS_times_parser.py
+```
 
-    ssh r7800 'tcpdump -K -c 20 -i eth0.2 udp port 53' | ./DNS_response_time_stats.py
+##### Columns:
+| lookup time delta (ms) | DNS request type | address looked up |
+|:----------------------:|:----------------:|:-----------------:|
 
-In this case, r7800 is a router and eth0.2 is its WAN NIC.
+Output is done using terminal scroll regions - one for each DNS server:
 
-Test with:
+![](assets/example.png)
 
-    cat tcpdump.out | ./DNS_response_time_stats.py
+### Regarding Terminal Window Size
+There is no terminal window size change callback, so instead any scroll region refresh happens when a new DNS line datum is added.
 
-Note: 1st version by Tom D. Aug 2020
-      revised by Peter D. Oct 2020
+If the terminal window height is not enough to display scroll regions for all DNS servers, a highlighted ↓ will appear in the first column which means "more scroll regions hidden below". When window height is increased, these are cleared/updated when next line datum is added.
+
+### Requirements
+- Python 3.6+ 
+- TerminalScrollRegionsDisplay
+
+### Notes
+- 1st parser version by Tom D. Aug 2020
+- revised by pdanford - Oct 2020
+- terminal window scroll regions added by pdanford - Jan 2021
+
