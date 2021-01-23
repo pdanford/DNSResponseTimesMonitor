@@ -102,11 +102,30 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        # Suppress python error when <ctrl><c> is used to exit
+        # Suppress python exception when <ctrl><c> is used to exit
         pass
     except ValueError as e:
         # catch errors thrown by ScrollRegion
         print("\n>>>> ", e, "\n")
+
+        ## ---------------------------------------------------------------------
+        # send pseudo <ctrl><c> (i.e. SIGINT) to shut down the indefinite STDIN
+        # pipe feeding main() since some programs upstream of the pipe may be
+        # ignoring SIGPIPE (e.g. macOS's ssh client)
+        try:
+            import os
+            import signal
+            pgid = os.getpgid(os.getpid())
+            if pgid == 1:
+                os.kill(os.getpid(), signal.SIGINT)
+            else:
+                os.killpg(os.getpgid(os.getpid()), signal.SIGINT) 
+        except ImportError:
+            pass
+        except KeyboardInterrupt:
+            # ignore python exception when pseudo SIGINT <ctrl><c> is sent above
+            pass
+        ## ---------------------------------------------------------------------
 
     sys.exit(0)
 
