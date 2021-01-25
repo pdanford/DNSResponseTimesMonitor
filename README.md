@@ -22,10 +22,18 @@ Output is done using terminal scroll regions - one for each DNS server:
 
 ![](assets/example.png)
 
-### Regarding Terminal Window Size
-There is no terminal window size change callback, so instead any scroll region refresh happens when a new DNS line datum is added.
+### Regarding Terminal Window Size and Terminal Scroll Regions
+Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
 
-If the terminal window height is not enough to display scroll regions for all DNS servers, a highlighted ↓ will appear in the first column which means "more scroll regions hidden below". When window height is increased, these are cleared/updated when next line datum is added.
+> Each new instance will establish and print lines in a terminal scroll region whose position starts immediately after any previously instantiated scroll regions. That is, each region location is based on the number of rows in the region and how many regions have already been created.
+>
+>In the case of multiple scroll regions, the number of regions is limited by the height of the terminal window (i.e. the window cannot be scrolled up and down to see scroll regions off-screen. As an example work around on macOS, <kbd>command</kbd>+<kbd>-</kbd> can be used to shrink the terminal window and fonts so more scroll regions will fit on-screen.
+
+and
+
+>If the terminal window height is not enough to display a complete scroll region for all scroll region instances, a highlighted "↓↓ more below ↓↓" message will appear at the last row of the terminal window which means more scroll region rows are hidden below.
+>
+>Note that when terminal window height is increased, any more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
 
 ### Requirements
 - Python 3.6+ 

@@ -2,7 +2,7 @@ from time import sleep
 from shutil import get_terminal_size
 from collections import deque
 
-# version 1.1.1
+# version 1.1.3
 # requires Python 3.6+ 
 # pdanford - January 2021
 # MIT License
@@ -134,6 +134,9 @@ class ScrollRegion:
             self.__line_cache.append(blanking_string)
             self.__Print(blanking_string, 0)
 
+        # clear class global "more below" flag (to be reset during next
+        # __Print() if needed
+        ScrollRegion.__more_below_flag = False
 
     def SetTitle(self, title):
         """
@@ -166,7 +169,15 @@ class ScrollRegion:
                 print(f"{ANSI_postion_to_row}", end="")
                 # print title
                 print(f"{self.__title}", end="")
-                print(f"{ANSI_clear_rest_of_line}", end="")
+                print(f"{ANSI_clear_rest_of_line}\r", end="")
+
+                ## ---------------------------------
+
+                if ScrollRegion.__more_below_flag:
+                    # display "more below" message at last row of terminal window
+                    terminal_columns, terminal_rows = get_terminal_size()
+                    ANSI_postion_to_row = f"\x1b[{terminal_rows};1H"
+                    print(f"{ANSI_postion_to_row}{ScrollRegion.__more_below_message}", end="")
 
 
     def AddLine(self, line, scroll_delay_s = 0.125):

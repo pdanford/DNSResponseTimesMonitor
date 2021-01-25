@@ -1,8 +1,10 @@
 Terminal Window Scroll Region(s)
 --------------------------------------------------------------------------------
-This is a python 3.6+ class to manage output to a terminal window in the form of one or more scroll regions.
+This is a python 3.6+ class to present output on a terminal window in the form of one or more scroll regions.
 
 Each new instance will establish and print lines in a terminal scroll region whose position starts immediately after any previously instantiated scroll regions. That is, each region location is based on the number of rows in the region and how many regions have already been created.
+
+In the case of multiple scroll regions, the number of regions is limited by the height of the terminal window (i.e. the window cannot be scrolled up and down to see scroll regions off-screen. As an example work around on macOS, <kbd>command</kbd>+<kbd>-</kbd> can be used to shrink the terminal window and fonts so more scroll regions will fit on-screen.
 
 pdanford - January 2021
 
@@ -23,7 +25,7 @@ Note that by default there is a small delay after each line is added to allow so
 ##### Regarding Terminal Window Size
 If the terminal window height is not enough to display a complete scroll region for all scroll region instances, a highlighted "↓↓ more below ↓↓" message will appear at the last row of the terminal window which means more scroll region rows are hidden below.
 
-Note that when terminal window height is increased, this more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
+Note that when terminal window height is increased, any more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
 
 ### Use
 ```
