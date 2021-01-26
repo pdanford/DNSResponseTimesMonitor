@@ -7,6 +7,8 @@ import itertools
 from collections import namedtuple
 from TerminalScrollRegionsDisplay.ScrollRegion import ScrollRegion
 
+ANSI_cyan_bg = "\x1b[46m"
+ANSI_color_reset = "\x1b[0m"
 
 def time2float(t):
     return t.hour * 3600 + t.minute * 60 + t.second + t.microsecond / 1e6
@@ -54,40 +56,61 @@ def process(packets_gen):
     """
     processes the packet generator stream packets_gen from tcpdump produced by
     parse_gen
-    """ 
-    ave_response_time = []
+    """
     scroll_regions = {}
+    scroll_regions_stats = {}
     request_cache = {}
     for p in packets_gen:
         if p.is_req:
-            # make note of new DNS request time
+            # ** new DNS request **
+            # make note of new DNS request
             request_cache[p.dst_address+'-'+p.proto+'-'+p.reqid] =\
                                       (time2float(p.t), p.query_address, p.type)
         elif p.src_address+'-'+p.proto+'-'+p.reqid in request_cache:
             #   ^^^^^ note address swap in key so responses match key
             #         made with original request's dst_address
-
+            # ** DNS response **
             # calculate time this request took
             request = request_cache[p.src_address+'-'+p.proto+'-'+p.reqid]
             del request_cache[p.src_address+'-'+p.proto+'-'+p.reqid]
 
             # add DNS response data to its scroll region for display
-            # scroll_region_name = f"{p.src_address[:-3]+'-'+p.proto:^40}"
-            scroll_region_name =\
-                     f"\x1b[46m{p.src_address[:-3]+' ('+p.proto+')':^65}\x1b[0m"
+            # the [:-3] trims the port number
+            scroll_region_name = f"{p.src_address[:-3]+' ('+p.proto+')'}"
 
             if scroll_region_name not in scroll_regions:
-                # create region for this new DNS server
+                # create scroll region for this new DNS server
                 scroll_regions[scroll_region_name] =\
                                                 ScrollRegion(scroll_region_name)
+                scroll_regions_stats[scroll_region_name] = {}
+                scroll_regions_stats[scroll_region_name]["total_requests"] = 0
+                scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] = 0
 
-            # add this DNS request/response datum to its ScrollRegion
-            # instance for display - columns:
-            # | lookup time delta (ms) | DNS request type | address looked up |
+            # add this DNS request/response datum to its ScrollRegion instance
+            # for display
             dt_s = time2float(p.t) - request[0]
-            scroll_regions[scroll_region_name].AddLine(\
-                                       f"{dt_s*1000:<7.3f}{request[2]:^8}{request[1]}")
+            # datum columns:
+            # | lookup time delta (ms) | DNS request type | address looked up |
+            line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1]}"
+            scroll_regions[scroll_region_name].AddLine(line)
+
+            # update stats for this scroll regions
+            scroll_regions_stats[scroll_region_name]["total_requests"] += 1
+            scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] += dt_s*1000
+
+            # update the scroll region title with these stats
+            total_requests = scroll_regions_stats[scroll_region_name]["total_requests"]
+            ave_ms = (scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] /
+                      scroll_regions_stats[scroll_region_name]["total_requests"])
+
+            left =   f"{scroll_region_name}"
+            right1 = f"{'reqs:' + str(total_requests)} "
+            right2 = f"{'ave:' + f'{ave_ms:>.0f}' + 'ms  '}"
+
+            title =  f"{ANSI_cyan_bg}  {left:<40} {right1 + right2:>20}{ANSI_color_reset}"
+            scroll_regions[scroll_region_name].SetTitle(title)
         else:
+            # ** DNS response without a matching request in request_cache **
             # ignore this response - no matching request in request_cache
             pass
 

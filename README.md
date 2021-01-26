@@ -1,6 +1,6 @@
 DNS Response Times Monitor
 --------------------------------------------------------------------------------
-This script parses output from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show DNS response times in ms for each DNS request ID separated by DNS server and IP version.
+This script parses output from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show DNS response times in milliseconds for each DNS request grouped by DNS server and IP version.
 
 ##### Example use (continuous stream):
 ```
@@ -14,15 +14,12 @@ In this example, the interface used in tcpdump is the WAN interface of a Netgear
 cat assets/tcpdump_test.out | ./DNS_times_parser.py
 ```
 
-##### Columns:
-| lookup time delta (ms) | DNS request type | address looked up |
-|:----------------------:|:----------------:|:-----------------:|
-
-Output is done using terminal scroll regions - one for each DNS server:
+##### Output
+Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server:
 
 ![](assets/example.png)
 
-### Regarding Terminal Window Size and Terminal Scroll Regions
+### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
 
 > Each new instance will establish and print lines in a terminal scroll region whose position starts immediately after any previously instantiated scroll regions. That is, each region location is based on the number of rows in the region and how many regions have already been created.
@@ -34,6 +31,15 @@ and
 >If the terminal window height is not enough to display a complete scroll region for all scroll region instances, a highlighted "↓↓ more below ↓↓" message will appear at the last row of the terminal window which means more scroll region rows are hidden below.
 >
 >Note that when terminal window height is increased, any more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
+
+##### Output Columns for each DNS server scroll region:
+###### Title Row
+| DNS Host | IP Version | Total Requests | Request Duration Average (ms) |
+|:--------:|:----------:|:--------------:|:-----------------------------:|
+
+###### Request Datum Rows
+| Individual Request Duration (ms) | DNS Request type | Address Looked Up |
+|:--------------------------------:|:----------------:|:-----------------:|
 
 ### Requirements
 - Python 3.6+ 
