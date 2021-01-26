@@ -1,6 +1,6 @@
 DNS Response Times Monitor
 --------------------------------------------------------------------------------
-This script parses output from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show DNS response times in milliseconds for each DNS request grouped by DNS server and IP version.
+This script parses output in real-time from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show individual DNS request response times in milliseconds grouped by DNS server and IP version (with server stats).
 
 ##### Example use (continuous stream):
 ```
@@ -34,12 +34,14 @@ and
 
 ##### Output Columns for each DNS server scroll region:
 ###### Title Row
-| DNS Host | IP Version | Total Requests | Request Duration Average (ms) |
-|:--------:|:----------:|:--------------:|:-----------------------------:|
+| DNS Host | IP Version | Total Requests on this DNS Host | Simple Moving Average of Request Durations (ms) |
+|:--------:|:----------:|:-------------------------------:|:-----------------------------------------------:|
+
+The SMA has a period of 10 (the number of individual DNS request rows in a region).
 
 ###### Request Datum Rows
-| Individual Request Duration (ms) | DNS Request type | Address Looked Up |
-|:--------------------------------:|:----------------:|:-----------------:|
+| Request Duration (ms) | DNS Request Type | Address Looked Up |
+|:---------------------:|:----------------:|:-----------------:|
 
 ### Requirements
 - Python 3.6+ 

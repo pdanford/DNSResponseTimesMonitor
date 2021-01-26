@@ -5,7 +5,11 @@ import sys
 import datetime
 import itertools
 from collections import namedtuple
+from SimpleMovingAverage.SMA import SMA
 from TerminalScrollRegionsDisplay.ScrollRegion import ScrollRegion
+
+# size of each scroll region in rows
+scroll_region_size = 11
 
 ANSI_cyan_bg = "\x1b[46m"
 ANSI_color_reset = "\x1b[0m"
@@ -77,37 +81,40 @@ def process(packets_gen):
             # add DNS response data to its scroll region for display
             # the [:-3] trims the port number
             scroll_region_name = f"{p.src_address[:-3]+' ('+p.proto+')'}"
+            # calculate time request took in seconds
+            dt_s = time2float(p.t) - request[0]
 
             if scroll_region_name not in scroll_regions:
                 # create scroll region for this new DNS server
                 scroll_regions[scroll_region_name] =\
-                                                ScrollRegion(scroll_region_name)
+                            ScrollRegion(scroll_region_name, scroll_region_size)
+                # stats storage
                 scroll_regions_stats[scroll_region_name] = {}
-                scroll_regions_stats[scroll_region_name]["total_requests"] = 0
-                scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] = 0
+                stats = scroll_regions_stats[scroll_region_name]
+                stats["total_requests"] = 0
+                # use the number of rows in the scroll region for the SMA
+                # period (except the title row)
+                stats["sma_ms"] = SMA(scroll_region_size - 1)
 
             # add this DNS request/response datum to its ScrollRegion instance
             # for display
-            dt_s = time2float(p.t) - request[0]
-            # datum columns:
+            # request datum columns:
             # | lookup time delta (ms) | DNS request type | address looked up |
             line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1]}"
             scroll_regions[scroll_region_name].AddLine(line)
 
-            # update stats for this scroll regions
-            scroll_regions_stats[scroll_region_name]["total_requests"] += 1
-            scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] += dt_s*1000
+            # update total requests so far stat
+            stats = scroll_regions_stats[scroll_region_name]
+            stats["total_requests"] += 1
+            total_requests = stats["total_requests"]
+            # update simple moving average
+            sma_ms = stats["sma_ms"].CalculateNextSMA(dt_s*1000)
 
             # update the scroll region title with these stats
-            total_requests = scroll_regions_stats[scroll_region_name]["total_requests"]
-            ave_ms = (scroll_regions_stats[scroll_region_name]["accumulated_time_ms"] /
-                      scroll_regions_stats[scroll_region_name]["total_requests"])
-
-            left =   f"{scroll_region_name}"
-            right1 = f"{'reqs:' + str(total_requests)} "
-            right2 = f"{'ave:' + f'{ave_ms:>.0f}' + 'ms  '}"
-
-            title =  f"{ANSI_cyan_bg}  {left:<40} {right1 + right2:>20}{ANSI_color_reset}"
+            left =   f" {scroll_region_name}"
+            right1 = f"reqs:{total_requests}  "
+            right2 = f"sma({stats['sma_ms'].GetPeriod()}):{sma_ms:>.1f}ms "
+            title =  f"{ANSI_cyan_bg}{left:<45} {right1 + right2:>30}{ANSI_color_reset}"
             scroll_regions[scroll_region_name].SetTitle(title)
         else:
             # ** DNS response without a matching request in request_cache **
