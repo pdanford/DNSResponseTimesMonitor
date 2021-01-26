@@ -2,7 +2,7 @@ from time import sleep
 from shutil import get_terminal_size
 from collections import deque
 
-# version 1.1.3
+# version 1.1.4
 # requires Python 3.6+ 
 # pdanford - January 2021
 # MIT License
@@ -23,8 +23,7 @@ class ScrollRegion:
     Note: requires VT100 escape compatibility
     """
 
-    ## ----- class values -----
-
+    ## ----- class variables -----
     # where 1st instance scroll region is located in terminal window
     __scroll_region_start_row = 1
 
@@ -43,20 +42,7 @@ class ScrollRegion:
     # enough for all scroll region(s) rows
     __more_below_message =\
       f"{ANSI_yellow_bg} ↓↓ more below ↓↓ {ANSI_color_reset}{ANSI_clear_rest_of_line}"
-
-    ## ----- instance variables -----
-
-    # storage for scroll region title line 
-    # note this should only be updated after creation through SetTitle()
-    # because it modifies the scroll region start location
-    # (takes up 1 row of scroll_region_height)
-    __title = ""
-
-    # storage for last row number of terminal scroll region
-    __scroll_region_end_row = 0
-
-    # small cache for the lines added to the region
-    __line_cache = deque()
+    ## ---------------------------
 
 
     def __init__(self,
@@ -79,13 +65,24 @@ class ScrollRegion:
             # at least 2 lines, but modern terminal emulators seem to be fine
             # with 1 (which might be useful to some)
 
-        # instance member initializations
+        ## ----- instance variables -----
         self.__scroll_region_height = scroll_region_height
         self.__scroll_region_start_row = ScrollRegion.__scroll_region_start_row
+        # storage for last row number of terminal scroll region
         self.__scroll_region_end_row   = (self.__scroll_region_start_row
                                           + scroll_region_height
                                           - 1)
-        self.__line_cache = deque()
+
+        # storage for scroll region title line 
+        # Note this should only be updated through SetTitle()
+        # because it modifies the scroll region start location
+        # (takes up 1 row of scroll_region_height).
+        self.__title = ""
+
+        # small cache for the lines added to the scroll region
+        # (keep the length the same as the scroll region height)
+        self.__line_cache = deque(maxlen = self.__scroll_region_height)
+        ## ------------------------------
 
         # update class global for next new ScrollRegion instantiated
         ScrollRegion.__scroll_region_start_row = self.__scroll_region_end_row + 1
@@ -189,10 +186,6 @@ class ScrollRegion:
         # Add this line to the cache
         # (in case it's needed for a refresh trigger later)
         self.__line_cache.append(line)
-
-        if len(self.__line_cache) > self.__scroll_region_height:
-            # keep __line_cache length the same as the scroll region height
-            self.__line_cache.popleft()
 
         # Print newly added line to this scroll region end row
         self.__Print(line, scroll_delay_s)
