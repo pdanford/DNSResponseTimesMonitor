@@ -11,7 +11,10 @@ from TerminalScrollRegionsDisplay.ScrollRegion import ScrollRegion
 # size of each scroll region in rows
 scroll_region_size = 11
 
+ANSI_red_bg ="\x1b[41m"
 ANSI_cyan_bg = "\x1b[46m"
+ANSI_green_bg = "\x1b[42m"
+ANSI_yellow_bg = "\x1b[43m"
 ANSI_color_reset = "\x1b[0m"
 
 DNS_packet = namedtuple('DNS_packet_type',['t',
@@ -60,6 +63,57 @@ def parse_gen(f):
                              dst_address,
                              parts[7],
                              parts[6])
+
+
+def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
+    """
+    make all scroll regions' title reflect new relative performance stats
+    and highlights
+
+    dns_servers - iterable of DNS_Server tuples to update their titles
+    last_updated_region_name - name of the region to update title last so
+                               terminal window cursor stays there to indicate
+                               the region that last had DNS response rows added
+    """
+    # specify region title update order - doesn't matter except
+    # last_region_to_update must be at end
+    server_names = [dns_server_name for dns_server_name in dns_servers]
+    if last_region_to_update != "":
+        server_names.remove(last_region_to_update)
+        server_names.append(last_region_to_update)
+
+    fastest_server_sma_ms = min([dns_server.stats["sma_ms"].GetCurrentSMA()
+                                 for dns_server in dns_servers.values()])
+
+    # update titles in all scroll regions with SMA highlights
+    for dns_server_name in server_names:
+        dns_server = dns_servers[dns_server_name]
+
+        sma_ms = dns_server.stats["sma_ms"].GetCurrentSMA()
+
+        ## ---------------------------------------------------------------
+        # pick highlight the DNS servers' sma to show relative performance
+        ANSI_SMA_highlight = ""
+        if len(dns_servers) > 1:
+            if sma_ms > 2.00 * fastest_server_sma_ms:
+                ANSI_SMA_highlight = ANSI_red_bg
+            elif sma_ms >= 1.35 * fastest_server_sma_ms:
+                ANSI_SMA_highlight = ANSI_yellow_bg
+            elif sma_ms == fastest_server_sma_ms:
+                ANSI_SMA_highlight = ANSI_green_bg
+
+        # build up a new scroll region title with these stats
+        ## ---------------------------------------------------------------
+        name   = f" {dns_server_name} "
+        reqs   = f"reqs:{dns_server.stats['total_requests']} "
+        sma    = f"sma({dns_server.stats['sma_ms'].GetPeriod()}):"
+        sma   += f"{dns_server.stats['sma_ms'].GetCurrentSMA():>.1f}ms "
+        title  = f"{ANSI_cyan_bg}"
+        title += f"{name:<45}{reqs:>20}{ANSI_SMA_highlight}{sma:>16}"
+        title += f"{ANSI_color_reset}"
+
+        # update the scroll region title with these stats
+        dns_server.scroll_region.SetTitle(title)
 
 
 def process(packets_gen):
@@ -113,16 +167,9 @@ def process(packets_gen):
             dns_server.stats["total_requests"] += 1
             dns_server.stats["sma_ms"].CalculateNextSMA(dt_s*1000)
 
-            # update the scroll region title with these stats
-            name = f" {dns_server_name} "
-            reqs = f"reqs:{dns_server.stats['total_requests']} "
-            sma  = f"sma({dns_server.stats['sma_ms'].GetPeriod()}):"
-            sma += f"{dns_server.stats['sma_ms'].GetCurrentSMA():>.1f}ms "
-            title =  f"{ANSI_cyan_bg}"
-            title += f"{name:<45}{reqs:>20}{sma:>16}"
-            title += f"{ANSI_color_reset}"
-
-            dns_server.scroll_region.SetTitle(title)
+            # make all scroll regions' title reflect new relative
+            # performance stats and highlights
+            update_all_titles_with_stats(dns_servers, dns_server_name)
         else:
             # ** DNS response without a matching request in request_cache **
             # ignore this response - no matching request in request_cache

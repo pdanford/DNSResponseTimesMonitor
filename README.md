@@ -1,3 +1,4 @@
+
 DNS Response Times Monitor
 --------------------------------------------------------------------------------
 This script parses output in real-time from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show individual DNS request response times in milliseconds grouped by DNS server and IP version (with server stats).
@@ -17,14 +18,14 @@ cat assets/tcpdump_test.out | ./DNS_times_parser.py
 ### Output
 Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server:
 
-![](assets/example.png)
+![](assets/example.gif)
 
 ##### Output Columns for each DNS server scroll region
 ###### Title Row
 | DNS Server | IP Version | Total Requests on this Server | Simple Moving Average of Request Durations (ms) |
 |:----------:|:----------:|:-----------------------------:|:-----------------------------------------------:|
 
-The SMA has a period of 10 (the number of individual DNS request rows in a region).
+The SMA has a period of 10 (the number of individual DNS request rows in a region). The fastest DNS server will have its SMA highlighted in green. Servers that are between 35% and 100% slower will be highlighted in yellow. Greater than 100% slower will be highlighted in red.
 
 ###### Request Datum Rows
 | Request Duration (ms) | DNS Request Type | Address Looked Up |
