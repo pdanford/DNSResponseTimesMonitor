@@ -14,13 +14,26 @@ scroll_region_size = 11
 ANSI_cyan_bg = "\x1b[46m"
 ANSI_color_reset = "\x1b[0m"
 
+DNS_packet = namedtuple('DNS_packet_type',['t',
+                                           'reqid',
+                                           'is_req',
+                                           'proto',
+                                           'src_address',
+                                           'dst_address',
+                                           'query_address',
+                                           'type'])
+
+DNS_Server = namedtuple('scroll_region_type',['scroll_region',
+                                              'stats'])
+
+
 def time2float(t):
     return t.hour * 3600 + t.minute * 60 + t.second + t.microsecond / 1e6
 
 
 def parse_gen(f):
     """
-    Parses tcpdump lines supplied by f into a DNS_packet named tuple
+    parses tcpdump lines supplied by f into a DNS_packet named tuple
     """
     for line in f:
         parts = line.strip().split(" ")
@@ -33,16 +46,9 @@ def parse_gen(f):
             if is_req:
                 reqid = reqid[:-1]
 
-            dst_address = parts[4][:-1] # strip trailing ':' tcpdump adds
-
-            DNS_packet = namedtuple('DNS_packet_type',['t',
-                                                       'reqid',
-                                                       'is_req',
-                                                       'proto',
-                                                       'src_address',
-                                                       'dst_address',
-                                                       'query_address',
-                                                       'type'])
+            # strip port numbers from source and destination addresses
+            src_address = parts[2].rsplit(".", 1)[0]
+            dst_address = parts[4].rsplit(".", 1)[0]
 
             # yield makes this a generator function so this will produce results
             # as long as the piped tcpdump output supplies DNS lookup packets
@@ -50,7 +56,7 @@ def parse_gen(f):
                              reqid,
                              is_req,
                              parts[1],
-                             parts[2],
+                             src_address,
                              dst_address,
                              parts[7],
                              parts[6])
@@ -61,15 +67,14 @@ def process(packets_gen):
     processes the packet generator stream packets_gen from tcpdump produced by
     parse_gen
     """
-    scroll_regions = {}
-    scroll_regions_stats = {}
+    dns_servers = {}
     request_cache = {}
     for p in packets_gen:
         if p.is_req:
             # ** new DNS request **
             # make note of new DNS request
             request_cache[p.dst_address+'-'+p.proto+'-'+p.reqid] =\
-                                      (time2float(p.t), p.query_address, p.type)
+                       (time2float(p.t), p.query_address, p.type, p.src_address)
         elif p.src_address+'-'+p.proto+'-'+p.reqid in request_cache:
             #   ^^^^^ note address swap in key so responses match key
             #         made with original request's dst_address
@@ -79,43 +84,45 @@ def process(packets_gen):
             del request_cache[p.src_address+'-'+p.proto+'-'+p.reqid]
 
             # add DNS response data to its scroll region for display
-            # the [:-3] trims the port number
-            scroll_region_name = f"{p.src_address[:-3]+' ('+p.proto+')'}"
+            dns_server_name = f"{p.src_address+' ('+p.proto+')'}"
             # calculate time request took in seconds
             dt_s = time2float(p.t) - request[0]
 
-            if scroll_region_name not in scroll_regions:
-                # create scroll region for this new DNS server
-                scroll_regions[scroll_region_name] =\
-                            ScrollRegion(scroll_region_name, scroll_region_size)
-                # stats storage
-                scroll_regions_stats[scroll_region_name] = {}
-                stats = scroll_regions_stats[scroll_region_name]
-                stats["total_requests"] = 0
-                # use the number of rows in the scroll region for the SMA
-                # period (except the title row)
-                stats["sma_ms"] = SMA(scroll_region_size - 1)
+            if dns_server_name not in dns_servers:
+                # create scroll region and statistics dict for this DNS server
+                dns_server =\
+                   DNS_Server(ScrollRegion(dns_server_name, scroll_region_size),
+                             {"total_requests" : 0,
+                              "sma_ms": SMA(scroll_region_size - 1)})
+                # use the number of rows in the scroll region (less the title
+                # row) for the SMA period
 
-            # add this DNS request/response datum to its ScrollRegion instance
-            # for display
-            # request datum columns:
+                dns_servers[dns_server_name] = dns_server
+            else:
+                # find previously created scroll region and statistics dict
+                dns_server = dns_servers[dns_server_name]
+
+            # add this DNS request/response datum to its ScrollRegion
+            # instance for display - request datum columns:
             # | lookup time delta (ms) | DNS request type | address looked up |
-            line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1]}"
-            scroll_regions[scroll_region_name].AddLine(line)
+            line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1][:-1]}"
+            # (the [:-1] trims the trailing period from the address looked up)
+            dns_server.scroll_region.AddLine(line)
 
-            # update total requests so far stat
-            stats = scroll_regions_stats[scroll_region_name]
-            stats["total_requests"] += 1
-            total_requests = stats["total_requests"]
-            # update simple moving average
-            sma_ms = stats["sma_ms"].CalculateNextSMA(dt_s*1000)
+            # update this scroll region's stats
+            dns_server.stats["total_requests"] += 1
+            dns_server.stats["sma_ms"].CalculateNextSMA(dt_s*1000)
 
             # update the scroll region title with these stats
-            left =   f" {scroll_region_name}"
-            right1 = f"reqs:{total_requests}  "
-            right2 = f"sma({stats['sma_ms'].GetPeriod()}):{sma_ms:>.1f}ms "
-            title =  f"{ANSI_cyan_bg}{left:<45} {right1 + right2:>30}{ANSI_color_reset}"
-            scroll_regions[scroll_region_name].SetTitle(title)
+            name = f" {dns_server_name} "
+            reqs = f"reqs:{dns_server.stats['total_requests']} "
+            sma  = f"sma({dns_server.stats['sma_ms'].GetPeriod()}):"
+            sma += f"{dns_server.stats['sma_ms'].GetCurrentSMA():>.1f}ms "
+            title =  f"{ANSI_cyan_bg}"
+            title += f"{name:<45}{reqs:>20}{sma:>16}"
+            title += f"{ANSI_color_reset}"
+
+            dns_server.scroll_region.SetTitle(title)
         else:
             # ** DNS response without a matching request in request_cache **
             # ignore this response - no matching request in request_cache

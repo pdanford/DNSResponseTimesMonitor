@@ -14,10 +14,21 @@ In this example, the interface used in tcpdump is the WAN interface of a Netgear
 cat assets/tcpdump_test.out | ./DNS_times_parser.py
 ```
 
-##### Output
+### Output
 Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server:
 
 ![](assets/example.png)
+
+##### Output Columns for each DNS server scroll region
+###### Title Row
+| DNS Server | IP Version | Total Requests on this Server | Simple Moving Average of Request Durations (ms) |
+|:----------:|:----------:|:-----------------------------:|:-----------------------------------------------:|
+
+The SMA has a period of 10 (the number of individual DNS request rows in a region).
+
+###### Request Datum Rows
+| Request Duration (ms) | DNS Request Type | Address Looked Up |
+|:---------------------:|:----------------:|:-----------------:|
 
 ### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
@@ -31,17 +42,6 @@ and
 >If the terminal window height is not enough to display a complete scroll region for all scroll region instances, a highlighted "↓↓ more below ↓↓" message will appear at the last row of the terminal window which means more scroll region rows are hidden below.
 >
 >Note that when terminal window height is increased, any more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
-
-##### Output Columns for each DNS server scroll region:
-###### Title Row
-| DNS Host | IP Version | Total Requests on this DNS Host | Simple Moving Average of Request Durations (ms) |
-|:--------:|:----------:|:-------------------------------:|:-----------------------------------------------:|
-
-The SMA has a period of 10 (the number of individual DNS request rows in a region).
-
-###### Request Datum Rows
-| Request Duration (ms) | DNS Request Type | Address Looked Up |
-|:---------------------:|:----------------:|:-----------------:|
 
 ### Requirements
 - Python 3.6+ 
