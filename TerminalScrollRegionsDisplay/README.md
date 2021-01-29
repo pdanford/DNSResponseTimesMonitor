@@ -1,6 +1,6 @@
 Terminal Window Scroll Region(s)
 --------------------------------------------------------------------------------
-This is a python 3.6+ class to present output on a terminal window in the form of one or more scroll regions.
+This is a python 3.6+ class to present output on a terminal window in the form of one or more scroll regions using the ANSI escape control sequences supported by the terminal emulator. This means the scroll regions are very light weight (e.g. cannot be scrolled back to see history that has been scrolled off).
 
 Each new instance will establish and print lines in a terminal scroll region whose position starts immediately after any previously instantiated scroll regions. That is, each region location is based on the number of rows in the region and how many regions have already been created.
 

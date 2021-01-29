@@ -11,7 +11,7 @@ Including `--print_requester` on the command line causes requester's address to 
 
 ##### Example use (continuous stream):
 ```
-ssh r7800 'tcpdump -K -U -i eth0.2 udp port 53 2>/dev/null' | ./DNS_times_parser.py
+ssh r7800 'tcpdump -K -l -i eth0.2 udp port 53 2>/dev/null' | ./DNS_times_parser.py
 ```
 
 In this example, the interface used in tcpdump is the WAN interface of a Netgear router so dnsmasq cache lookups and any adblock DNS black-holing is bypassed.
@@ -39,6 +39,10 @@ The SMA has a period of 10 (the number of individual DNS request rows in a regio
 
 ### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
+
+> This is a python 3.6+ class to present output on a terminal window in the form of one or more scroll regions using the ANSI escape control sequences supported by the terminal emulator. This means the scroll regions are very light weight (e.g. cannot be scrolled back to see history that has been scrolled off).
+
+and
 
 > Each new instance will establish and print lines in a terminal scroll region whose position starts immediately after any previously instantiated scroll regions. That is, each region location is based on the number of rows in the region and how many regions have already been created.
 >
