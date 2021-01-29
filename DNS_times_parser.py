@@ -2,6 +2,7 @@
 # requires Python 3.6+ 
 
 import sys
+import argparse
 import datetime
 import itertools
 from collections import namedtuple
@@ -116,7 +117,7 @@ def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
         dns_server.scroll_region.SetTitle(title)
 
 
-def process(packets_gen):
+def process(packets_gen, print_requester):
     """
     processes the packet generator stream packets_gen from tcpdump produced by
     parse_gen
@@ -161,6 +162,11 @@ def process(packets_gen):
             # | lookup time delta (ms) | DNS request type | address looked up |
             line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1][:-1]}"
             # (the [:-1] trims the trailing period from the address looked up)
+
+            if print_requester:
+                # requester address is desired in output also
+                line += f" (from {request[3]})"
+
             dns_server.scroll_region.AddLine(line)
 
             # update this scroll region's stats
@@ -177,9 +183,15 @@ def process(packets_gen):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--print_requester",
+                        action="store_true",
+                        help="append requester's address to Request Datum Row output")
+    args = parser.parse_args()
+
     print("\n-- waiting for tcpdump DNS packets stream --")
     # get tcpdump output stream from stdin
-    process(parse_gen(sys.stdin))
+    process(parse_gen(sys.stdin), args.print_requester)
 
 
 if __name__ == "__main__":

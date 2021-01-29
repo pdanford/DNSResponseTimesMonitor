@@ -3,6 +3,12 @@ DNS Response Times Monitor
 --------------------------------------------------------------------------------
 This script parses output in real-time from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show individual DNS request response times in milliseconds grouped by DNS server and IP version (with server stats).
 
+##### Usage
+```
+(tcpdump DNS capture output) | DNS_times_parser.py [--print_requester]
+```
+Including `--print_requester` on the command line causes requester's address to be appended to Request Datum Row output.
+
 ##### Example use (continuous stream):
 ```
 ssh r7800 'tcpdump -K -U -i eth0.2 udp port 53 2>/dev/null' | ./DNS_times_parser.py
