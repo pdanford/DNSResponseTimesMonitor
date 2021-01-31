@@ -46,13 +46,16 @@ def parse_gen(f):
 
             t = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
 
-            is_req = reqid.endswith('+')
-            if is_req:
+            if reqid.endswith('+'):
+                # strip any recursion requested flag
                 reqid = reqid[:-1]
+
+            dst_address = parts[4]
+            is_req = dst_address.endswith('.53:')
 
             # strip port numbers from source and destination addresses
             src_address = parts[2].rsplit(".", 1)[0]
-            dst_address = parts[4].rsplit(".", 1)[0]
+            dst_address = dst_address.rsplit(".", 1)[0]
 
             # yield makes this a generator function so this will produce results
             # as long as the piped tcpdump output supplies DNS lookup packets
