@@ -22,7 +22,9 @@ cat assets/tcpdump_test.out | ./DNS_times_parser.py
 ```
 
 ### Output
-Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server:
+Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server. Terminal scroll regions are lightweight and cannot be scrolled back to show history. Thus, the main purpose of these regions is to give a feel for what's being looked up in real-time, not provide a log of DNS requests.
+
+Example output:
 
 ![](assets/example.gif)
 
@@ -34,8 +36,8 @@ Output is done using terminal scroll regions provided by TerminalScrollRegionsDi
 The SMA has a period of 10 (the number of individual DNS request rows in a region). The fastest DNS server will have its SMA highlighted in green. Servers that are between 35% and 100% slower will be highlighted in yellow. Greater than 100% slower will be highlighted in red.
 
 ###### Request Datum Rows
-| Request Duration (ms) | DNS Request Type | Address Looked Up |
-|:---------------------:|:----------------:|:-----------------:|
+| Request Duration ms (and time of response) | DNS Request Type | Address Looked Up | [Requester Address] |
+|:------------------------------------------:|:----------------:|:-----------------:|:-------------------:|
 
 ### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:

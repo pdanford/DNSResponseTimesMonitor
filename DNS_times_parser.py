@@ -132,7 +132,7 @@ def process(packets_gen, print_requester):
             # ** new DNS request **
             # make note of new DNS request
             request_cache[p.dst_address+'-'+p.proto+'-'+p.reqid] =\
-                       (time2float(p.t), p.query_address, p.type, p.src_address)
+                    (time2float(p.t), p.query_address, p.type, p.src_address)
         elif p.src_address+'-'+p.proto+'-'+p.reqid in request_cache:
             #   ^^^^^ note address swap in key so responses match key
             #         made with original request's dst_address
@@ -162,8 +162,12 @@ def process(packets_gen, print_requester):
 
             # add this DNS request/response datum to its ScrollRegion
             # instance for display - request datum columns:
-            # | lookup time delta (ms) | DNS request type | address looked up |
-            line = f" {dt_s*1000:>7.3f}ms {request[2]:^8} {request[1][:-1]}"
+            # | Request Duration ms (and time of response) | DNS Request Type | Address Looked Up | [Requester Address]
+            timestamp = str(p.t).rsplit(".", 1)[0]
+            line  = f"{dt_s*1000:>7.3f}ms " # request duration
+            line += f"({timestamp}) "       # time of response
+            line += f"{request[2]:^8} "     # request type
+            line += f"{request[1][:-1]}"    # query_address
             # (the [:-1] trims the trailing period from the address looked up)
 
             if print_requester:
