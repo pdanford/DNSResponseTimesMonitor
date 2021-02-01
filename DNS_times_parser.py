@@ -18,7 +18,7 @@ ANSI_green_bg = "\x1b[42m"
 ANSI_yellow_bg = "\x1b[43m"
 ANSI_color_reset = "\x1b[0m"
 
-DNS_packet = namedtuple('DNS_packet_type',['t',
+DNS_packet = namedtuple('DNS_packet_type',['time',
                                            'reqid',
                                            'is_req',
                                            'proto',
@@ -131,8 +131,7 @@ def process(packets_gen, print_requester):
         if p.is_req:
             # ** new DNS request **
             # make note of new DNS request
-            request_cache[p.dst_address+'-'+p.proto+'-'+p.reqid] =\
-                    (time2float(p.t), p.query_address, p.type, p.src_address)
+            request_cache[p.dst_address+'-'+p.proto+'-'+p.reqid] = p
         elif p.src_address+'-'+p.proto+'-'+p.reqid in request_cache:
             #   ^^^^^ note address swap in key so responses match key
             #         made with original request's dst_address
@@ -144,7 +143,7 @@ def process(packets_gen, print_requester):
             # add DNS response data to its scroll region for display
             dns_server_name = f"{p.src_address+' ('+p.proto+')'}"
             # calculate time request took in seconds
-            dt_s = time2float(p.t) - request[0]
+            dt_s = time2float(p.time) - time2float(request.time)
 
             if dns_server_name not in dns_servers:
                 # create scroll region and statistics dict for this DNS server
@@ -163,16 +162,17 @@ def process(packets_gen, print_requester):
             # add this DNS request/response datum to its ScrollRegion
             # instance for display - request datum columns:
             # | Request Duration ms (and time of response) | DNS Request Type | Address Looked Up | [Requester Address]
-            timestamp = str(p.t).rsplit(".", 1)[0]
+            timestamp = str(p.time).rsplit(".", 1)[0]
             line  = f"{dt_s*1000:>7.3f}ms " # request duration
             line += f"({timestamp}) "       # time of response
-            line += f"{request[2]:^8} "     # request type
-            line += f"{request[1][:-1]}"    # query_address
-            # (the [:-1] trims the trailing period from the address looked up)
+            line += f"{request.type:^8} "
+            line += f"{request.query_address[:-1]}" # (the [:-1] trims the
+                                                    # trailing period from the
+                                                    # address looked up)
 
             if print_requester:
                 # requester address is desired in output also
-                line += f" (from {request[3]})"
+                line += f" (from {request.src_address})"
 
             dns_server.scroll_region.AddLine(line)
 
