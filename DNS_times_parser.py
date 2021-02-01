@@ -207,9 +207,10 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         # Suppress python exception when <ctrl><c> is used to exit
         pass
-    except ValueError as e:
-        # catch errors thrown by ScrollRegion
-        print("\n>>>> ", e, "\n")
+    except (SystemExit,ValueError) as e:
+        if type(e) == ValueError:
+            # print errors thrown by ScrollRegion
+            print("\n>>>> ", e, "\n")
 
         ## ---------------------------------------------------------------------
         # send pseudo <ctrl><c> (i.e. SIGINT) to shut down the indefinite STDIN
