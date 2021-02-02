@@ -39,6 +39,8 @@ The SMA has a period of 10 (the number of individual DNS request rows in a regio
 | Request Duration ms (and time of response) | DNS Request Type | Address Looked Up | [Requester Address] |
 |:------------------------------------------:|:----------------:|:-----------------:|:-------------------:|
 
+`NoRecord` and `NXDomain` are appended to Request Datum Rows that didn't have a successful lookup.
+
 ### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
 

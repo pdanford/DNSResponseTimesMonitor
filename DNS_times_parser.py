@@ -217,6 +217,9 @@ def process(packets_gen, print_requester):
             line += f"{request.query_address[:-1]}" # (the [:-1] trims the
                                                     # trailing period from the
                                                     # address looked up)
+            if (p.query_address == "NXDomain" or 
+                p.query_address == "NoRecord"):
+                line += f" ({p.query_address})"     # show lookup fail type
 
             if print_requester:
                 # requester address is desired in output also
