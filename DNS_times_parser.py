@@ -24,8 +24,8 @@ DNS_packet = namedtuple('DNS_packet_type',['time',
                                            'proto',
                                            'src_address',
                                            'dst_address',
-                                           'query_address',
-                                           'type'])
+                                           'type',
+                                           'query_address'])
 
 DNS_Server = namedtuple('scroll_region_type',['scroll_region',
                                               'stats'])
@@ -37,17 +37,33 @@ def time2float(t):
 
 def parse_gen(f):
     """
-    parses tcpdump lines supplied by f into a DNS_packet named tuple
+    parses tcpdump lines supplied by iterable f into a DNS_packet named tuple
     """
     for line in f:
+        # tcpdump output can be tricky to parse because the output may or
+        # may not have extra fields mixed in (see "check for extra option flags
+        # enclosed in square brackets" below). But this parsing method should
+        # cover 99% of the request cases.
         parts = line.strip().split(" ")
+
+        # some DNS responses presented by tcpdump may be missing some fields
+        # or fields moved from normal positions due to being Type65, No answer,
+        # NXDOMAIN, so pad so these so there will not be an index error below
+        while len(parts) < 10:
+            parts.append("@")
+
         if len(parts) > 5:
-            time, reqid = parts[0], parts[5]
+            time = parts[0]
+            reqid = parts[5]
 
             t = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
 
+            if reqid.endswith('%'):
+                # strip any "checking disabled" flag
+                reqid = reqid[:-1]
+
             if reqid.endswith('+'):
-                # strip any recursion requested flag
+                # strip any "recursion requested" flag
                 reqid = reqid[:-1]
 
             dst_address = parts[4]
@@ -59,15 +75,47 @@ def parse_gen(f):
 
             # yield makes this a generator function so this will produce results
             # as long as the piped tcpdump output supplies DNS lookup packets
-            yield DNS_packet(t,
-                             reqid,
-                             is_req,
-                             parts[1],
-                             src_address,
-                             dst_address,
-                             parts[7],
-                             parts[6])
+            if is_req:
+                # check for extra option flags enclosed in square brackets
+                # (dig does this, regular queries do not)
+                if parts[6][0] == "[":
+                    # -- tcpdump shifted field output special case --
+                    # fix by discarding the flags (e.g. the [1au]) 
+                    parts[6] = parts[7]
+                    parts[7] = parts[8]
+                    parts[8] = ""
 
+                yield DNS_packet(t,
+                                 reqid,
+                                 is_req,
+                                 parts[1],
+                                 src_address,
+                                 dst_address,
+                                 parts[6],
+                                 parts[7])
+            else:
+                if parts[6].upper() == "NXDOMAIN":
+                    # -- tcpdump shifted field output special case --
+                    #(non-existent domain)
+                    parts[7] = "-"
+                    parts[8] = "NXDomain"
+                elif parts[6].startswith("0/"):
+                    # No record for type requested
+                    parts[7] = "-"
+                    parts[8] = "NoRecord"
+                elif parts[7].upper() == "TYPE65":
+                    # first record was a Type65 encoded data block
+                    parts[7] = "TYPE65_ENCODED_DATA"
+                    parts[8] = "-"
+
+                yield DNS_packet(t,
+                                 reqid,
+                                 is_req,
+                                 parts[1],
+                                 src_address,
+                                 dst_address,
+                                 parts[7],
+                                 parts[8])
 
 def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
     """
@@ -172,7 +220,7 @@ def process(packets_gen, print_requester):
 
             if print_requester:
                 # requester address is desired in output also
-                line += f" (from {request.src_address})"
+                line += f" [from {request.src_address}]"
 
             dns_server.scroll_region.AddLine(line)
 
