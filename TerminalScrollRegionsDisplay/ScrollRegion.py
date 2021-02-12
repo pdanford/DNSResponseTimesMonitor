@@ -255,6 +255,11 @@ class ScrollRegion:
         ANSI_postion_to_row = f"\x1b[{print_row_num};1H"
         print(f"{ANSI_postion_to_row}", end="")
 
+        # ** fix for background color wrapping edge case **
+        # this takes care of a highlighted line that wraps causing highlight
+        # running all the way across the next line
+        line += f"{ANSI_clear_rest_of_line}"
+
         if print_row_num - self.__scroll_region_start_row >= 1:
             # prepend a newline to cause previous lines to scroll up in region
             print(f"\n{line}\r", end="")
