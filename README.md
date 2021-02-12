@@ -1,17 +1,20 @@
 
 DNS Response Times Monitor
---------------------------------------------------------------------------------
-This script parses output in real-time from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show individual DNS request response times in milliseconds grouped by DNS server and IP version (with server stats).
+================================================================================
+This script parses output in real-time from tcpdump (as a continuous stream or as a set amount by adding `-c` to the tcpdump arguments) to show individual DNS request response times in milliseconds grouped by DNS server and IP version (with server stats). Note that only UDP captures can be parsed - not TCP.
 
-##### Usage
+Usage
+--------------------------------------------------------------------------------
 ```
-(tcpdump DNS capture output) | DNS_times_parser.py [--print_requester]
+(tcpdump UDP DNS capture output) | DNS_times_parser.py [--print_requester] [--print_dns_failures]
 ```
 Including `--print_requester` on the command line causes requester's address to be appended to Request Datum Row output.
 
-##### Example use (continuous stream):
+Including `--print_dns_failures` causes highlighted `NoRecord` and `NXDomain` tags to be appended to Request Datum Rows that didn't have a successful lookup.
+
+##### Example (continuous stream):
 ```
-ssh r7800 'tcpdump -K -l -i eth0.2 udp port 53 2>/dev/null' | ./DNS_times_parser.py
+ssh r7800 'tcpdump -K -l -i eth0.2 udp port 53' | ./DNS_times_parser.py --print_dns_failures
 ```
 
 In this example, the interface used in tcpdump is the WAN interface of a Netgear router so dnsmasq cache lookups and any adblock DNS black-holing is bypassed.
@@ -21,7 +24,8 @@ In this example, the interface used in tcpdump is the WAN interface of a Netgear
 cat assets/tcpdump_test.out | ./DNS_times_parser.py
 ```
 
-### Output
+Output
+--------------------------------------------------------------------------------
 Output is done using terminal scroll regions provided by TerminalScrollRegionsDisplay - one for each DNS server. Terminal scroll regions are lightweight and cannot be scrolled back to show history. Thus, the main purpose of these regions is to give a feel for what's being looked up in real-time, not provide a log of DNS requests.
 
 Example output:
@@ -39,9 +43,10 @@ The SMA has a period of 10 (the number of individual DNS request rows in a regio
 | Request Duration ms (and time of response) | DNS Request Type | Address Looked Up | [Requester Address] |
 |:------------------------------------------:|:----------------:|:-----------------:|:-------------------:|
 
-`NoRecord` and `NXDomain` are appended to Request Datum Rows that didn't have a successful lookup.
+Regarding Terminal Window Size and Scroll Regions
+--------------------------------------------------------------------------------
+TL;DR: you can't scroll back for history and "↓↓ more below ↓↓" appears at bottom if there's not enough room
 
-### Regarding Terminal Window Size and Scroll Regions
 Terminal scroll regions are supplied by TerminalScrollRegionsDisplay. From its readme:
 
 > This is a python 3.6+ class to present output on a terminal window in the form of one or more scroll regions using the ANSI escape control sequences supported by the terminal emulator. This means the scroll regions are very light weight (e.g. cannot be scrolled back to see history that has been scrolled off).
@@ -58,11 +63,13 @@ and
 >
 >Note that when terminal window height is increased, any more below state is updated during the next AddLine() call (since there is no terminal window size change callback).
 
-### Requirements
+Requirements
+--------------------------------------------------------------------------------
 - Python 3.6+ 
 - TerminalScrollRegionsDisplay
 
-### Notes
+Notes
+--------------------------------------------------------------------------------
 - 1st parser version by Tom D. Aug 2020
 - revised by pdanford - Oct 2020
 - terminal window scroll regions added by pdanford - Jan 2021

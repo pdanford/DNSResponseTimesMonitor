@@ -16,6 +16,7 @@ ANSI_red_bg ="\x1b[41m"
 ANSI_cyan_bg = "\x1b[46m"
 ANSI_green_bg = "\x1b[42m"
 ANSI_yellow_bg = "\x1b[43m"
+ANSI_magenta_bg = "\x1b[45m"
 ANSI_color_reset = "\x1b[0m"
 
 DNS_packet = namedtuple('DNS_packet_type',['time',
@@ -168,7 +169,7 @@ def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
         dns_server.scroll_region.SetTitle(title)
 
 
-def process(packets_gen, print_requester):
+def process(packets_gen, print_requester, print_dns_failures):
     """
     processes the packet generator stream packets_gen from tcpdump produced by
     parse_gen
@@ -195,7 +196,7 @@ def process(packets_gen, print_requester):
 
             if dns_server_name not in dns_servers:
                 # create scroll region and statistics dict for this DNS server
-                dns_server =\
+                dns_server = \
                    DNS_Server(ScrollRegion(dns_server_name, scroll_region_size),
                              {"total_requests" : 0,
                               "sma_ms": SMA(scroll_region_size - 1)})
@@ -217,9 +218,12 @@ def process(packets_gen, print_requester):
             line += f"{request.query_address[:-1]}" # (the [:-1] trims the
                                                     # trailing period from the
                                                     # address looked up)
-            if (p.query_address == "NXDomain" or 
-                p.query_address == "NoRecord"):
-                line += f" ({p.query_address})"     # show lookup fail type
+            if print_dns_failures:
+                if (p.query_address == "NXDomain" or 
+                    p.query_address == "NoRecord"):
+                    # show lookup fail type
+                    line += \
+                      f" {ANSI_magenta_bg} {p.query_address} {ANSI_color_reset}"
 
             if print_requester:
                 # requester address is desired in output also
@@ -245,11 +249,14 @@ def main():
     parser.add_argument("--print_requester",
                         action="store_true",
                         help="append requester's address to Request Datum Row output")
+    parser.add_argument("--print_dns_failures",
+                        action="store_true",
+                        help="prints a tag for lookups that result in NoRecord and NXDomain")
     args = parser.parse_args()
 
     print("\n-- waiting for tcpdump DNS packets stream --")
     # get tcpdump output stream from stdin
-    process(parse_gen(sys.stdin), args.print_requester)
+    process(parse_gen(sys.stdin), args.print_requester, args.print_dns_failures)
 
 
 if __name__ == "__main__":
