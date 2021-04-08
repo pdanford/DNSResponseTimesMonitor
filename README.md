@@ -66,7 +66,7 @@ and
 Requirements
 --------------------------------------------------------------------------------
 - Python 3.6+ 
-- TerminalScrollRegionsDisplay
+- TerminalScrollRegionsDisplay (bundled with this repo)
 
 Notes
 --------------------------------------------------------------------------------
