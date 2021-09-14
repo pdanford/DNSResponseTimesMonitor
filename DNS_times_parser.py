@@ -6,7 +6,7 @@ import argparse
 import datetime
 import itertools
 from collections import namedtuple
-from SimpleMovingAverage.SMA import SMA
+from MovingAverageClasses.MAs import SMA
 from TerminalScrollRegionsDisplay.ScrollRegion import ScrollRegion
 
 # size of each scroll region in rows
@@ -135,14 +135,14 @@ def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
         server_names.remove(last_region_to_update)
         server_names.append(last_region_to_update)
 
-    fastest_server_sma_ms = min([dns_server.stats["sma_ms"].GetCurrentSMA()
+    fastest_server_sma_ms = min([dns_server.stats["sma_ms"].GetMA()
                                  for dns_server in dns_servers.values()])
 
     # update titles in all scroll regions with SMA highlights
     for dns_server_name in server_names:
         dns_server = dns_servers[dns_server_name]
 
-        sma_ms = dns_server.stats["sma_ms"].GetCurrentSMA()
+        sma_ms = dns_server.stats["sma_ms"].GetMA()
 
         ## ---------------------------------------------------------------
         # pick highlight the DNS servers' sma to show relative performance
@@ -159,8 +159,8 @@ def update_all_titles_with_stats(dns_servers, last_region_to_update = ""):
         ## ---------------------------------------------------------------
         name   = f" {dns_server_name} "
         reqs   = f"reqs:{dns_server.stats['total_requests']} "
-        sma    = f"sma({dns_server.stats['sma_ms'].GetPeriod()}):"
-        sma   += f"{dns_server.stats['sma_ms'].GetCurrentSMA():>.1f}ms "
+        sma    = f"{dns_server.stats['sma_ms'].GetLegend()}:"        
+        sma   += f"{dns_server.stats['sma_ms'].GetMA():>.1f}ms "
         title  = f"{ANSI_cyan_bg}"
         title += f"{name:<45}{reqs:>20}{ANSI_SMA_highlight}{sma:>16}"
         title += f"{ANSI_color_reset}"
@@ -199,7 +199,7 @@ def process(packets_gen, print_requester, print_dns_failures):
                 dns_server = \
                    DNS_Server(ScrollRegion(dns_server_name, scroll_region_size),
                              {"total_requests" : 0,
-                              "sma_ms": SMA(scroll_region_size - 1)})
+                              "sma_ms": SMA("", scroll_region_size - 1)})
                 # use the number of rows in the scroll region (less the title
                 # row) for the SMA period
 
@@ -233,7 +233,7 @@ def process(packets_gen, print_requester, print_dns_failures):
 
             # update this scroll region's stats
             dns_server.stats["total_requests"] += 1
-            dns_server.stats["sma_ms"].CalculateNextSMA(dt_s*1000)
+            dns_server.stats["sma_ms"].CalculateNextMA(dt_s*1000)
 
             # make all scroll regions' title reflect new relative
             # performance stats and highlights
